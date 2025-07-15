@@ -30,14 +30,10 @@ export default function HomePage() {
         limit: 20
     })
 
-    // 处理分类切换的动画
+    // 处理分类切换 - 立即响应，无延迟
     const handleCategoryChange = (categoryId: number) => {
         if (categoryId !== selectedCategory) {
-            setIsTransitioning(true)
-            setTimeout(() => {
-                setSelectedCategory(categoryId)
-                setIsTransitioning(false)
-            }, 150)
+            setSelectedCategory(categoryId)
         }
     }
 
@@ -167,15 +163,13 @@ export default function HomePage() {
                             </div>
                         )}
 
-                        {/* 书签网格 - 添加动画效果 */}
-                        <div className={`grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 transition-all duration-300 ${isTransitioning ? 'opacity-0 transform translate-y-4' : 'opacity-100 transform translate-y-0'
-                            }`}>
+                        {/* 书签网格 - 简洁流畅的动画 */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                             {bookmarks.map((bookmark, index) => (
                                 <BookmarkCard
-                                    key={bookmark.id}
+                                    key={`${selectedCategory}-${bookmark.id}`}
                                     bookmark={bookmark}
                                     index={index}
-                                    isTransitioning={isTransitioning}
                                 />
                             ))}
                         </div>
@@ -217,22 +211,21 @@ export default function HomePage() {
 }
 
 // 书签卡片组件
-function BookmarkCard({ bookmark, index, isTransitioning }: { bookmark: any; index: number; isTransitioning: boolean }) {
+function BookmarkCard({ bookmark, index }: { bookmark: any; index: number }) {
     const handleClick = () => {
         window.open(bookmark.url, '_blank')
     }
 
     return (
         <div
-            className={`bg-white rounded-2xl p-6 border border-gray-200 cursor-pointer relative overflow-hidden
+            className="bg-white rounded-2xl p-6 border border-gray-200 cursor-pointer relative overflow-hidden
                      transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-lg hover:border-transparent
                      before:content-[''] before:absolute before:top-0 before:left-0 before:w-1 before:h-0 
-                     before:bg-blue-600 before:transition-all before:duration-300 hover:before:h-full
-                     ${isTransitioning ? 'opacity-0 transform translate-y-4' : 'opacity-100 transform translate-y-0'}`}
+                     before:bg-blue-600 before:transition-all before:duration-300 hover:before:h-full"
             onClick={handleClick}
             style={{
                 animationDelay: `${index * 50}ms`,
-                animation: !isTransitioning ? `fadeInUp 0.6s ease-out ${index * 50}ms both` : 'none'
+                animation: `fadeInUp 0.6s ease-out ${index * 50}ms both`
             }}
         >
             <div className="flex items-center gap-4 mb-3">
