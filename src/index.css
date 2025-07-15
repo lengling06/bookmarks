@@ -2,14 +2,81 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 墨韵设计系统 CSS 变量 */
+:root {
+  --bg-primary: #f8f9fa;
+  --bg-secondary: #ffffff;
+  --text-primary: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --accent-blue: #3b82c4;
+  --accent-red: #dc2626;
+  --border-color: #e5e7eb;
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+}
+
 @layer base {
   html {
-    font-family: system-ui, sans-serif;
+    font-family: -apple-system, "Microsoft YaHei", "微软雅黑", sans-serif;
   }
   
   body {
     @apply bg-gray-50 text-gray-900;
+    font-family: -apple-system, "Microsoft YaHei", "微软雅黑", sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    position: relative;
+    min-height: 100vh;
   }
+}
+
+/* 背景装饰 - 竹子效果 */
+.bamboo {
+  position: absolute;
+  width: 2px;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(59, 130, 196, 0.1) 20%,
+    rgba(59, 130, 196, 0.15) 80%,
+    transparent 100%);
+  animation: sway 8s ease-in-out infinite;
+}
+
+.bamboo::before {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 60px;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 60"><path d="M20 0 Q 10 20 15 30 Q 20 40 20 60" fill="none" stroke="rgba(59,130,196,0.1)" stroke-width="1"/></svg>') no-repeat;
+  top: -60px;
+  left: -20px;
+}
+
+@keyframes sway {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-10px) rotate(-1deg); }
+  75% { transform: translateX(10px) rotate(1deg); }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out;
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown 0.8s ease-out;
 }
 
 @layer components {
