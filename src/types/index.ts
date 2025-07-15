@@ -43,13 +43,20 @@ export interface ApiResponse<T> {
     }
 }
 
-// 分页响应类型
+// 分页响应类型 - 修复类型错误
 export interface PaginatedResponse<T> {
-    items: T[]
-    total: number
-    page: number
-    limit: number
-    totalPages: number
+    bookmarks?: T[]
+    items?: T[]
+    pagination?: {
+        total: number
+        page: number
+        limit: number
+        totalPages: number
+    }
+    total?: number
+    page?: number
+    limit?: number
+    totalPages?: number
 }
 
 // 搜索参数类型

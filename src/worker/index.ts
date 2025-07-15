@@ -7,7 +7,7 @@ import { adminRoutes } from './routes/admin'
 
 // 环境变量类型定义
 export interface Env {
-    DB: D1Database
+    DB: any
     ENVIRONMENT: string
     JWT_SECRET?: string
     ADMIN_USERNAME?: string

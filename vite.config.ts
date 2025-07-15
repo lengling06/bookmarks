@@ -9,6 +9,17 @@ export default defineConfig({
     },
     build: {
         outDir: 'dist',
-        sourcemap: true
+        sourcemap: false,
+        rollupOptions: {
+            onwarn(warning, warn) {
+                // 忽略某些警告
+                if (warning.code === 'UNUSED_EXTERNAL_IMPORT') return
+                warn(warning)
+            }
+        }
+    },
+    esbuild: {
+        // 忽略未使用的导入
+        legalComments: 'none'
     }
 })

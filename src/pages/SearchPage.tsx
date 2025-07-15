@@ -21,7 +21,7 @@ export default function SearchPage() {
         setPage(1)
     }, [query])
 
-    const handleSearch = (newQuery: string) => {
+    const handleSearch = (_newQuery: string) => {
         // SearchBox组件会处理导航
     }
 
@@ -89,7 +89,8 @@ export default function SearchPage() {
         )
     }
 
-    const { bookmarks, pagination } = data || { bookmarks: [], pagination: { total: 0, totalPages: 0 } }
+    const bookmarks = data?.bookmarks || []
+    const pagination = data?.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 }
 
     return (
         <div className="container mx-auto px-4 py-8">

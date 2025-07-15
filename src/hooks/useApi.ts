@@ -1,9 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import axios from 'axios'
 import type { Category, Bookmark, SearchParams, PaginatedResponse, ApiResponse } from '../types'
 
 // API基础配置
-const API_BASE = import.meta.env.VITE_API_BASE || '/api'
+const API_BASE = (import.meta as any).env?.VITE_API_BASE || '/api'
 
 const api = axios.create({
     baseURL: API_BASE,

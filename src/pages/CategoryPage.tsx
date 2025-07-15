@@ -48,7 +48,8 @@ export default function CategoryPage() {
         )
     }
 
-    const { bookmarks, pagination } = data
+    const bookmarks = data?.bookmarks || []
+    const pagination = data?.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 }
 
     return (
         <div className="container mx-auto px-4 py-8">

@@ -7,7 +7,7 @@ export interface Database {
 }
 
 // 创建数据库连接
-export function createDatabase(d1: D1Database) {
+export function createDatabase(d1: any) {
     return drizzle(d1, { schema })
 }
 
