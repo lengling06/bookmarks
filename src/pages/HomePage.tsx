@@ -4,14 +4,21 @@ import { useNavigate } from 'react-router-dom'
 
 export default function HomePage() {
     const { data: categories, isLoading: categoriesLoading, error } = useCategories()
-    const [selectedCategory, setSelectedCategory] = useState<number | 'all'>('all')
+    const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [bookmarks, setBookmarks] = useState<any[]>([])
     const navigate = useNavigate()
 
+    // 当分类加载完成后，默认选择第一个分类
+    useEffect(() => {
+        if (categories && categories.length > 0 && selectedCategory === null) {
+            setSelectedCategory(categories[0].id)
+        }
+    }, [categories, selectedCategory])
+
     // 获取书签数据
     const { data: categoryBookmarks } = useCategoryBookmarks(
-        selectedCategory !== 'all' ? selectedCategory as number : 0,
+        selectedCategory || 0,
         1,
         20
     )
@@ -26,17 +33,10 @@ export default function HomePage() {
     useEffect(() => {
         if (searchQuery) {
             setBookmarks(searchResults?.bookmarks || [])
-        } else if (selectedCategory === 'all') {
-            // 获取所有书签
-            const allBookmarks: any[] = []
-            categories?.forEach(category => {
-                // 这里需要获取每个分类的书签，暂时显示空
-            })
-            setBookmarks([])
         } else if (categoryBookmarks) {
             setBookmarks(categoryBookmarks.bookmarks || [])
         }
-    }, [searchQuery, searchResults, selectedCategory, categoryBookmarks, categories])
+    }, [searchQuery, searchResults, selectedCategory, categoryBookmarks])
 
     if (categoriesLoading) {
         return <LoadingState />
@@ -57,12 +57,22 @@ export default function HomePage() {
 
             <div className="max-w-6xl mx-auto px-5 py-10">
                 {/* 头部 */}
-                <header className="text-center mb-15 animate-fade-in-down">
-                    <div className="inline-block mb-5">
-                        <svg width="60" height="60" viewBox="0 0 60 60">
-                            <circle cx="30" cy="30" r="28" fill="none" stroke="#3b82c4" strokeWidth="1" opacity="0.5" />
-                            <path d="M30 10 Q20 25 25 30 Q30 35 30 50 M30 10 Q40 25 35 30 Q30 35 30 50"
-                                fill="none" stroke="#3b82c4" strokeWidth="1.5" />
+                <header className="text-center mb-12 animate-fade-in-down">
+                    <div className="inline-block mb-6">
+                        {/* 新的优雅图标 - 书签与墨滴的结合 */}
+                        <svg width="64" height="64" viewBox="0 0 64 64" className="drop-shadow-sm">
+                            <defs>
+                                <linearGradient id="bookmarkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#3b82c4" stopOpacity="0.8" />
+                                    <stop offset="100%" stopColor="#1e40af" stopOpacity="0.9" />
+                                </linearGradient>
+                            </defs>
+                            {/* 书签形状 */}
+                            <path d="M20 8 C18 8 16 10 16 12 L16 52 C16 54 18 56 20 56 L32 48 L44 56 C46 56 48 54 48 52 L48 12 C48 10 46 8 44 8 Z"
+                                fill="url(#bookmarkGradient)" stroke="none" />
+                            {/* 墨滴装饰 */}
+                            <circle cx="32" cy="24" r="3" fill="white" opacity="0.9" />
+                            <path d="M32 20 Q28 24 32 28 Q36 24 32 20" fill="white" opacity="0.7" />
                         </svg>
                     </div>
                     <h1 className="text-5xl font-light tracking-widest mb-3 bg-gradient-to-r from-gray-800 to-blue-600 bg-clip-text text-transparent">
@@ -72,52 +82,86 @@ export default function HomePage() {
                 </header>
 
                 {/* 搜索框 */}
-                <div className="max-w-2xl mx-auto mb-12 animate-fade-in">
-                    <input
-                        type="text"
-                        className="w-full px-6 py-4 text-base border border-gray-200 rounded-full bg-white 
-                                 transition-all duration-300 shadow-sm
-                                 focus:outline-none focus:border-blue-500 focus:shadow-md focus:shadow-blue-100"
-                        placeholder="搜索书签..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                <div className="max-w-2xl mx-auto mb-8 animate-fade-in">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            className="w-full px-6 py-4 pl-12 text-base border border-gray-200 rounded-full bg-white 
+                                     transition-all duration-300 shadow-sm
+                                     focus:outline-none focus:border-blue-500 focus:shadow-md focus:shadow-blue-100"
+                            placeholder="搜索书签..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
                 </div>
 
-                {/* 分类导航 */}
-                <nav className="flex justify-center gap-8 mb-12 flex-wrap animate-fade-in">
-                    <div
-                        className={`px-6 py-2 cursor-pointer relative text-gray-500 transition-colors duration-300
-                                  ${selectedCategory === 'all' ? 'text-blue-600' : 'hover:text-blue-600'}
-                                  after:content-[''] after:absolute after:bottom-[-2px] after:left-1/2 
-                                  after:w-0 after:h-0.5 after:bg-blue-600 after:transition-all after:duration-300 
-                                  after:transform after:-translate-x-1/2
-                                  ${selectedCategory === 'all' ? 'after:w-full' : 'hover:after:w-full'}`}
-                        onClick={() => setSelectedCategory('all')}
-                    >
-                        全部
-                    </div>
-                    {categories?.map((category) => (
-                        <div
-                            key={category.id}
-                            className={`px-6 py-2 cursor-pointer relative text-gray-500 transition-colors duration-300
-                                      ${selectedCategory === category.id ? 'text-blue-600' : 'hover:text-blue-600'}
-                                      after:content-[''] after:absolute after:bottom-[-2px] after:left-1/2 
-                                      after:w-0 after:h-0.5 after:bg-blue-600 after:transition-all after:duration-300 
-                                      after:transform after:-translate-x-1/2
-                                      ${selectedCategory === category.id ? 'after:w-full' : 'hover:after:w-full'}`}
-                            onClick={() => setSelectedCategory(category.id)}
-                        >
-                            {category.name}
+                {/* 主要内容区域 - 左右布局 */}
+                <div className="flex gap-8 animate-fade-in">
+                    {/* 左侧分类导航 */}
+                    <aside className="w-64 flex-shrink-0">
+                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-200 sticky top-8">
+                            <h2 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                                <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                                        d="M19 11H5m14-7l2 2-2 2m2-2H9m10 7l2 2-2 2" />
+                                </svg>
+                                分类导航
+                            </h2>
+                            <nav className="space-y-2">
+                                {categories?.map((category) => (
+                                    <div
+                                        key={category.id}
+                                        className={`group flex items-center justify-between px-4 py-3 rounded-xl cursor-pointer 
+                                                  transition-all duration-300 hover:bg-blue-50
+                                                  ${selectedCategory === category.id ?
+                                                'bg-blue-50 text-blue-600 shadow-sm border-l-4 border-blue-600' :
+                                                'text-gray-600 hover:text-blue-600'}`}
+                                        onClick={() => setSelectedCategory(category.id)}
+                                    >
+                                        <div className="flex items-center">
+                                            <div className={`w-2 h-2 rounded-full mr-3 transition-colors duration-300
+                                                          ${selectedCategory === category.id ? 'bg-blue-600' : 'bg-gray-300 group-hover:bg-blue-400'}`}></div>
+                                            <span className="font-medium">{category.name}</span>
+                                        </div>
+                                        <span className={`text-xs px-2 py-1 rounded-full transition-colors duration-300
+                                                        ${selectedCategory === category.id ?
+                                                'bg-blue-100 text-blue-600' :
+                                                'bg-gray-100 text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600'}`}>
+                                            {category.bookmarkCount || 0}
+                                        </span>
+                                    </div>
+                                ))}
+                            </nav>
                         </div>
-                    ))}
-                </nav>
+                    </aside>
 
-                {/* 书签网格 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-                    {bookmarks.map((bookmark) => (
-                        <BookmarkCard key={bookmark.id} bookmark={bookmark} />
-                    ))}
+                    {/* 右侧书签展示区域 */}
+                    <main className="flex-1 min-w-0">
+                        {/* 当前分类标题 */}
+                        {selectedCategory && (
+                            <div className="mb-6">
+                                <h2 className="text-2xl font-light text-gray-800 mb-2">
+                                    {categories?.find(c => c.id === selectedCategory)?.name}
+                                </h2>
+                                <p className="text-gray-500">
+                                    {categories?.find(c => c.id === selectedCategory)?.description}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* 书签网格 - 优化为更紧凑的布局 */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                            {bookmarks.map((bookmark) => (
+                                <BookmarkCard key={bookmark.id} bookmark={bookmark} />
+                            ))}
+                        </div>
+                    </main>
                 </div>
 
                 {/* 空状态 */}
