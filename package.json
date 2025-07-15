@@ -1,0 +1,47 @@
+{
+  "name": "bookmark-manager",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "db:generate": "drizzle-kit generate:sqlite",
+    "db:migrate": "wrangler d1 migrations apply bookmark-db --local",
+    "db:migrate:prod": "wrangler d1 migrations apply bookmark-db",
+    "db:studio": "drizzle-kit studio",
+    "worker:dev": "wrangler dev src/worker/index.ts",
+    "worker:deploy": "wrangler deploy",
+    "worker:tail": "wrangler tail",
+    "dev:full": "concurrently \"npm run dev\" \"npm run worker:dev\""
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.1",
+    "@tanstack/react-query": "^5.8.4",
+    "axios": "^1.6.2",
+    "drizzle-orm": "^0.29.1",
+    "hono": "^3.11.7"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@typescript-eslint/eslint-plugin": "^6.10.0",
+    "@typescript-eslint/parser": "^6.10.0",
+    "@vitejs/plugin-react": "^4.1.1",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.53.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.4",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2",
+    "vite": "^4.5.0",
+    "drizzle-kit": "^0.20.6",
+    "wrangler": "^3.19.0",
+    "concurrently": "^8.2.2"
+  }
+}
