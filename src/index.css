@@ -71,12 +71,37 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeInUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(30px) scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
+}
+
 .animate-fade-in {
   animation: fadeIn 0.8s ease-out;
 }
 
 .animate-fade-in-down {
   animation: fadeInDown 0.8s ease-out;
+}
+
+/* 书签卡片动画增强 */
+@keyframes bookmarkHover {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.02); }
+  100% { transform: translateY(-4px) scale(1.02); }
+}
+
+/* 分类切换时的微妙动画 */
+@keyframes categorySwitch {
+  0% { opacity: 1; transform: translateX(0); }
+  50% { opacity: 0.7; transform: translateX(-10px); }
+  100% { opacity: 1; transform: translateX(0); }
 }
 
 @layer components {

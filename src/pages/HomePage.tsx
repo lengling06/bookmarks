@@ -7,6 +7,7 @@ export default function HomePage() {
     const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
     const [searchQuery, setSearchQuery] = useState('')
     const [bookmarks, setBookmarks] = useState<any[]>([])
+    const [isTransitioning, setIsTransitioning] = useState(false)
     const navigate = useNavigate()
 
     // 当分类加载完成后，默认选择第一个分类
@@ -28,6 +29,17 @@ export default function HomePage() {
         page: 1,
         limit: 20
     })
+
+    // 处理分类切换的动画
+    const handleCategoryChange = (categoryId: number) => {
+        if (categoryId !== selectedCategory) {
+            setIsTransitioning(true)
+            setTimeout(() => {
+                setSelectedCategory(categoryId)
+                setIsTransitioning(false)
+            }, 150)
+        }
+    }
 
     // 更新书签显示
     useEffect(() => {
@@ -122,7 +134,7 @@ export default function HomePage() {
                                                   ${selectedCategory === category.id ?
                                                 'bg-blue-50 text-blue-600 shadow-sm border-l-4 border-blue-600' :
                                                 'text-gray-600 hover:text-blue-600'}`}
-                                        onClick={() => setSelectedCategory(category.id)}
+                                        onClick={() => handleCategoryChange(category.id)}
                                     >
                                         <div className="flex items-center">
                                             <div className={`w-2 h-2 rounded-full mr-3 transition-colors duration-300
@@ -155,10 +167,16 @@ export default function HomePage() {
                             </div>
                         )}
 
-                        {/* 书签网格 - 优化为更紧凑的布局 */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                            {bookmarks.map((bookmark) => (
-                                <BookmarkCard key={bookmark.id} bookmark={bookmark} />
+                        {/* 书签网格 - 添加动画效果 */}
+                        <div className={`grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 transition-all duration-300 ${isTransitioning ? 'opacity-0 transform translate-y-4' : 'opacity-100 transform translate-y-0'
+                            }`}>
+                            {bookmarks.map((bookmark, index) => (
+                                <BookmarkCard
+                                    key={bookmark.id}
+                                    bookmark={bookmark}
+                                    index={index}
+                                    isTransitioning={isTransitioning}
+                                />
                             ))}
                         </div>
                     </main>
@@ -199,18 +217,23 @@ export default function HomePage() {
 }
 
 // 书签卡片组件
-function BookmarkCard({ bookmark }: { bookmark: any }) {
+function BookmarkCard({ bookmark, index, isTransitioning }: { bookmark: any; index: number; isTransitioning: boolean }) {
     const handleClick = () => {
         window.open(bookmark.url, '_blank')
     }
 
     return (
         <div
-            className="bg-white rounded-2xl p-6 border border-gray-200 cursor-pointer relative overflow-hidden
+            className={`bg-white rounded-2xl p-6 border border-gray-200 cursor-pointer relative overflow-hidden
                      transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-lg hover:border-transparent
                      before:content-[''] before:absolute before:top-0 before:left-0 before:w-1 before:h-0 
-                     before:bg-blue-600 before:transition-all before:duration-300 hover:before:h-full"
+                     before:bg-blue-600 before:transition-all before:duration-300 hover:before:h-full
+                     ${isTransitioning ? 'opacity-0 transform translate-y-4' : 'opacity-100 transform translate-y-0'}`}
             onClick={handleClick}
+            style={{
+                animationDelay: `${index * 50}ms`,
+                animation: !isTransitioning ? `fadeInUp 0.6s ease-out ${index * 50}ms both` : 'none'
+            }}
         >
             <div className="flex items-center gap-4 mb-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 
