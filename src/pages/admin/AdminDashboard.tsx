@@ -200,19 +200,28 @@ const BookmarkManager = () => {
     const fetchData = async () => {
         try {
             setIsLoading(true)
-            // 这里应该调用API获取数据，暂时使用模拟数据
-            const mockBookmarks = [
-                { id: 1, title: 'GitHub', url: 'https://github.com', description: '代码托管平台', categoryId: 1, category: '开发工具', tags: ['代码', '开源'], status: 'active', createdAt: '2024-01-01' },
-                { id: 2, title: 'Stack Overflow', url: 'https://stackoverflow.com', description: '程序员问答社区', categoryId: 1, category: '开发工具', tags: ['问答', '编程'], status: 'active', createdAt: '2024-01-02' },
-                { id: 3, title: 'Figma', url: 'https://figma.com', description: 'UI设计工具', categoryId: 2, category: '设计资源', tags: ['设计', 'UI'], status: 'active', createdAt: '2024-01-03' },
-            ]
-            const mockCategories = [
-                { id: 1, name: '开发工具' },
-                { id: 2, name: '设计资源' },
-                { id: 3, name: '学习资料' },
-            ]
-            setBookmarks(mockBookmarks)
-            setCategories(mockCategories)
+            // 获取书签数据
+            const bookmarksResponse = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/bookmarks?search=${searchQuery}&categoryId=${selectedCategory}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                }
+            })
+            const bookmarksResult = await bookmarksResponse.json()
+
+            // 获取分类数据
+            const categoriesResponse = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/categories`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                }
+            })
+            const categoriesResult = await categoriesResponse.json()
+
+            if (bookmarksResult.success) {
+                setBookmarks(bookmarksResult.data.bookmarks || [])
+            }
+            if (categoriesResult.success) {
+                setCategories(categoriesResult.data || [])
+            }
         } catch (error) {
             console.error('获取数据失败:', error)
         } finally {
@@ -227,9 +236,26 @@ const BookmarkManager = () => {
         return matchesSearch && matchesCategory
     })
 
-    const handleDeleteBookmark = (id: number) => {
+    const handleDeleteBookmark = async (id: number) => {
         if (confirm('确定要删除这个书签吗？')) {
-            setBookmarks(bookmarks.filter(b => b.id !== id))
+            try {
+                const response = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/bookmarks/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    }
+                })
+                const result = await response.json()
+                if (result.success) {
+                    setBookmarks(bookmarks.filter(b => b.id !== id))
+                    alert('书签删除成功')
+                } else {
+                    alert('删除失败: ' + result.error?.message)
+                }
+            } catch (error: any) {
+                console.error('删除书签失败:', error)
+                alert('删除失败: ' + error.message)
+            }
         }
     }
 
@@ -380,24 +406,66 @@ const BookmarkManager = () => {
                         setShowAddModal(false)
                         setEditingBookmark(null)
                     }}
-                    onSave={(bookmarkData) => {
-                        if (editingBookmark) {
-                            // 编辑书签
-                            setBookmarks(bookmarks.map(b =>
-                                b.id === editingBookmark.id ? { ...b, ...bookmarkData } : b
-                            ))
-                        } else {
-                            // 添加新书签
-                            const newBookmark = {
-                                id: Date.now(),
-                                ...bookmarkData,
-                                createdAt: new Date().toISOString(),
-                                status: 'active'
+                    onSave={async (bookmarkData) => {
+                        try {
+                            if (editingBookmark) {
+                                // 编辑书签
+                                const response = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/bookmarks/${editingBookmark.id}`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                                    },
+                                    body: JSON.stringify({
+                                        title: bookmarkData.title,
+                                        url: bookmarkData.url,
+                                        description: bookmarkData.description,
+                                        categoryId: bookmarkData.categoryId,
+                                        tags: bookmarkData.tags
+                                    })
+                                })
+                                const result = await response.json()
+                                if (result.success) {
+                                    setBookmarks(bookmarks.map(b =>
+                                        b.id === editingBookmark.id ? { ...b, ...bookmarkData } : b
+                                    ))
+                                    alert('书签更新成功')
+                                } else {
+                                    alert('更新失败: ' + result.error?.message)
+                                    return
+                                }
+                            } else {
+                                // 添加新书签
+                                const response = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/bookmarks`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                                    },
+                                    body: JSON.stringify({
+                                        title: bookmarkData.title,
+                                        url: bookmarkData.url,
+                                        description: bookmarkData.description,
+                                        categoryId: bookmarkData.categoryId,
+                                        tags: bookmarkData.tags
+                                    })
+                                })
+                                const result = await response.json()
+                                if (result.success) {
+                                    // 重新获取书签列表以获取最新数据
+                                    await fetchData()
+                                    alert('书签添加成功')
+                                } else {
+                                    alert('添加失败: ' + result.error?.message)
+                                    return
+                                }
                             }
-                            setBookmarks([newBookmark, ...bookmarks])
+                            setShowAddModal(false)
+                            setEditingBookmark(null)
+                        } catch (error: any) {
+                            console.error('保存书签失败:', error)
+                            alert('保存失败: ' + error.message)
                         }
-                        setShowAddModal(false)
-                        setEditingBookmark(null)
                     }}
                 />
             )}

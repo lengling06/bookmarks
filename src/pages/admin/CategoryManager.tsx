@@ -15,37 +15,17 @@ export default function CategoryManager() {
     const fetchCategories = async () => {
         try {
             setIsLoading(true)
-            // 这里应该调用API获取数据，暂时使用模拟数据
-            const mockCategories = [
-                {
-                    id: 1,
-                    name: '开发工具',
-                    description: '编程和开发相关的工具和资源',
-                    sortOrder: 1,
-                    bookmarkCount: 15,
-                    createdAt: '2024-01-01',
-                    updatedAt: '2024-01-01'
-                },
-                {
-                    id: 2,
-                    name: '设计资源',
-                    description: 'UI/UX设计工具和素材网站',
-                    sortOrder: 2,
-                    bookmarkCount: 8,
-                    createdAt: '2024-01-02',
-                    updatedAt: '2024-01-02'
-                },
-                {
-                    id: 3,
-                    name: '学习资料',
-                    description: '在线课程和教程网站',
-                    sortOrder: 3,
-                    bookmarkCount: 12,
-                    createdAt: '2024-01-03',
-                    updatedAt: '2024-01-03'
-                },
-            ]
-            setCategories(mockCategories)
+            const response = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/categories`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                }
+            })
+            const result = await response.json()
+            if (result.success) {
+                setCategories(result.data)
+            } else {
+                console.error('获取分类失败:', result.error)
+            }
         } catch (error) {
             console.error('获取分类失败:', error)
         } finally {
@@ -58,7 +38,7 @@ export default function CategoryManager() {
         category.description.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    const handleDeleteCategory = (id: number) => {
+    const handleDeleteCategory = async (id: number) => {
         const category = categories.find(c => c.id === id)
         if (category && category.bookmarkCount > 0) {
             const action = confirm(`分类"${category.name}"下有${category.bookmarkCount}个书签。\n\n点击"确定"删除分类和所有书签\n点击"取消"保留分类`)
@@ -67,10 +47,27 @@ export default function CategoryManager() {
             return
         }
 
-        setCategories(categories.filter(c => c.id !== id))
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/categories/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                }
+            })
+            const result = await response.json()
+            if (result.success) {
+                setCategories(categories.filter(c => c.id !== id))
+                alert('分类删除成功')
+            } else {
+                alert('删除失败: ' + result.error?.message)
+            }
+        } catch (error: any) {
+            console.error('删除分类失败:', error)
+            alert('删除失败: ' + error.message)
+        }
     }
 
-    const handleMoveCategory = (id: number, direction: 'up' | 'down') => {
+    const handleMoveCategory = async (id: number, direction: 'up' | 'down') => {
         const currentIndex = categories.findIndex(c => c.id === id)
         if (currentIndex === -1) return
 
@@ -88,7 +85,41 @@ export default function CategoryManager() {
             cat.sortOrder = index + 1
         })
 
-        setCategories(newCategories)
+        try {
+            // 更新两个分类的排序
+            const updatePromises = [
+                fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/categories/${newCategories[currentIndex].id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    },
+                    body: JSON.stringify({
+                        name: newCategories[currentIndex].name,
+                        description: newCategories[currentIndex].description,
+                        sortOrder: newCategories[currentIndex].sortOrder
+                    })
+                }),
+                fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/categories/${newCategories[targetIndex].id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                    },
+                    body: JSON.stringify({
+                        name: newCategories[targetIndex].name,
+                        description: newCategories[targetIndex].description,
+                        sortOrder: newCategories[targetIndex].sortOrder
+                    })
+                })
+            ]
+
+            await Promise.all(updatePromises)
+            setCategories(newCategories)
+        } catch (error) {
+            console.error('移动分类失败:', error)
+            alert('移动分类失败，请重试')
+        }
     }
 
     if (isLoading) {
@@ -233,26 +264,58 @@ export default function CategoryManager() {
                         setShowAddModal(false)
                         setEditingCategory(null)
                     }}
-                    onSave={(categoryData) => {
-                        if (editingCategory) {
-                            // 编辑分类
-                            setCategories(categories.map(c =>
-                                c.id === editingCategory.id ? { ...c, ...categoryData, updatedAt: new Date().toISOString() } : c
-                            ))
-                        } else {
-                            // 添加新分类
-                            const newCategory = {
-                                id: Date.now(),
-                                ...categoryData,
-                                sortOrder: categories.length + 1,
-                                bookmarkCount: 0,
-                                createdAt: new Date().toISOString(),
-                                updatedAt: new Date().toISOString()
+                    onSave={async (categoryData) => {
+                        try {
+                            if (editingCategory) {
+                                // 编辑分类
+                                const response = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/categories/${editingCategory.id}`, {
+                                    method: 'PUT',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                                    },
+                                    body: JSON.stringify({
+                                        name: categoryData.name,
+                                        description: categoryData.description,
+                                        sortOrder: editingCategory.sortOrder
+                                    })
+                                })
+                                const result = await response.json()
+                                if (result.success) {
+                                    setCategories(categories.map(c =>
+                                        c.id === editingCategory.id ? { ...c, ...categoryData, updatedAt: new Date().toISOString() } : c
+                                    ))
+                                    alert('分类更新成功')
+                                } else {
+                                    alert('更新失败: ' + result.error?.message)
+                                    return
+                                }
+                            } else {
+                                // 添加新分类
+                                const response = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/categories`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                                    },
+                                    body: JSON.stringify(categoryData)
+                                })
+                                const result = await response.json()
+                                if (result.success) {
+                                    // 重新获取分类列表以获取最新数据
+                                    await fetchCategories()
+                                    alert('分类添加成功')
+                                } else {
+                                    alert('添加失败: ' + result.error?.message)
+                                    return
+                                }
                             }
-                            setCategories([...categories, newCategory])
+                            setShowAddModal(false)
+                            setEditingCategory(null)
+                        } catch (error: any) {
+                            console.error('保存分类失败:', error)
+                            alert('保存失败: ' + error.message)
                         }
-                        setShowAddModal(false)
-                        setEditingCategory(null)
                     }}
                 />
             )}

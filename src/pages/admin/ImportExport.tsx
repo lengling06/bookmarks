@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function ImportExport() {
     const [activeTab, setActiveTab] = useState<'import' | 'export'>('import')
@@ -10,12 +10,28 @@ export default function ImportExport() {
         includeInactive: false
     })
 
-    // 模拟分类数据
-    const categories = [
-        { id: 1, name: '开发工具' },
-        { id: 2, name: '设计资源' },
-        { id: 3, name: '学习资料' },
-    ]
+    // 获取真实分类数据
+    const [categories, setCategories] = useState<any[]>([])
+
+    useEffect(() => {
+        fetchCategories()
+    }, [])
+
+    const fetchCategories = async () => {
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/categories`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                }
+            })
+            const result = await response.json()
+            if (result.success) {
+                setCategories(result.data)
+            }
+        } catch (error) {
+            console.error('获取分类失败:', error)
+        }
+    }
 
     // 处理文件上传
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,7 +133,8 @@ export default function ImportExport() {
             setImportProgress({
                 status: 'success',
                 message: `成功解析 ${bookmarks.length} 个书签`,
-                data: bookmarks.slice(0, 10) // 只显示前10个预览
+                data: bookmarks.slice(0, 10), // 只显示前10个预览
+                originalData: bookmarks // 保存完整数据用于导入
             })
 
         } catch (error: any) {
@@ -129,12 +146,45 @@ export default function ImportExport() {
     }
 
     // 确认导入
-    const confirmImport = () => {
-        // 这里应该调用API保存书签到数据库
+    const confirmImport = async () => {
+        if (!importProgress?.data) return
+
         setImportProgress({
-            status: 'completed',
-            message: '书签导入完成！'
+            status: 'processing',
+            message: '正在保存到数据库...'
         })
+
+        try {
+            // 调用后端API保存书签
+            const response = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                },
+                body: JSON.stringify({
+                    bookmarks: importProgress.originalData || importProgress.data
+                })
+            })
+
+            const result = await response.json()
+
+            if (result.success) {
+                setImportProgress({
+                    status: 'completed',
+                    message: `导入完成！成功导入 ${result.data.successCount} 个书签${result.data.failedCount > 0 ? `，失败 ${result.data.failedCount} 个` : ''}`,
+                    details: result.data
+                })
+            } else {
+                throw new Error(result.error?.message || '导入失败')
+            }
+        } catch (error: any) {
+            console.error('Import API error:', error)
+            setImportProgress({
+                status: 'error',
+                message: `导入失败: ${error.message}`
+            })
+        }
 
         // 3秒后重置状态
         setTimeout(() => {
@@ -144,45 +194,64 @@ export default function ImportExport() {
     }
 
     // 导出书签
-    const handleExport = () => {
-        // 模拟导出数据
-        const mockBookmarks = [
-            { id: 1, title: 'GitHub', url: 'https://github.com', description: '代码托管平台', category: '开发工具', tags: ['代码', '开源'] },
-            { id: 2, title: 'Figma', url: 'https://figma.com', description: 'UI设计工具', category: '设计资源', tags: ['设计', 'UI'] },
-        ]
+    const handleExport = async () => {
+        try {
+            // 构建查询参数
+            const params = new URLSearchParams({
+                format: exportFormat,
+                categoryId: exportFilters.categoryId,
+                includeInactive: exportFilters.includeInactive.toString()
+            })
 
-        let content = ''
-        let filename = ''
-        let mimeType = ''
+            // 调用后端API导出
+            const response = await fetch(`${import.meta.env.VITE_API_BASE || '/api'}/admin/export?${params}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+                }
+            })
 
-        switch (exportFormat) {
-            case 'html':
-                content = generateHtmlExport(mockBookmarks)
-                filename = 'bookmarks.html'
-                mimeType = 'text/html'
-                break
-            case 'json':
-                content = JSON.stringify(mockBookmarks, null, 2)
-                filename = 'bookmarks.json'
-                mimeType = 'application/json'
-                break
-            case 'csv':
-                content = generateCsvExport(mockBookmarks)
-                filename = 'bookmarks.csv'
-                mimeType = 'text/csv'
-                break
+            if (!response.ok) {
+                throw new Error('导出失败')
+            }
+
+            // 获取文件名
+            const contentDisposition = response.headers.get('Content-Disposition')
+            let filename = 'bookmarks'
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename="(.+)"/)
+                if (filenameMatch) {
+                    filename = filenameMatch[1]
+                }
+            } else {
+                // 根据格式设置默认文件名
+                switch (exportFormat) {
+                    case 'html':
+                        filename = 'bookmarks.html'
+                        break
+                    case 'json':
+                        filename = 'bookmarks.json'
+                        break
+                    case 'csv':
+                        filename = 'bookmarks.csv'
+                        break
+                }
+            }
+
+            // 下载文件
+            const blob = await response.blob()
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            document.body.appendChild(a)
+            a.click()
+            document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+
+        } catch (error: any) {
+            console.error('Export error:', error)
+            alert('导出失败: ' + error.message)
         }
-
-        // 下载文件
-        const blob = new Blob([content], { type: mimeType })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
     }
 
     // 生成HTML格式导出
@@ -248,8 +317,8 @@ export default function ImportExport() {
                     <button
                         onClick={() => setActiveTab('import')}
                         className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${activeTab === 'import'
-                                ? 'bg-white text-blue-600 shadow-sm'
-                                : 'text-gray-600 hover:text-gray-900'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         📥 导入书签
@@ -257,8 +326,8 @@ export default function ImportExport() {
                     <button
                         onClick={() => setActiveTab('export')}
                         className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-colors ${activeTab === 'export'
-                                ? 'bg-white text-green-600 shadow-sm'
-                                : 'text-gray-600 hover:text-gray-900'
+                            ? 'bg-white text-green-600 shadow-sm'
+                            : 'text-gray-600 hover:text-gray-900'
                             }`}
                     >
                         📤 导出书签
@@ -334,9 +403,9 @@ export default function ImportExport() {
                         {/* 导入进度和结果 */}
                         {importProgress && (
                             <div className={`p-4 rounded-xl ${importProgress.status === 'error' ? 'bg-red-50 border border-red-200' :
-                                    importProgress.status === 'success' ? 'bg-green-50 border border-green-200' :
-                                        importProgress.status === 'completed' ? 'bg-blue-50 border border-blue-200' :
-                                            'bg-yellow-50 border border-yellow-200'
+                                importProgress.status === 'success' ? 'bg-green-50 border border-green-200' :
+                                    importProgress.status === 'completed' ? 'bg-blue-50 border border-blue-200' :
+                                        'bg-yellow-50 border border-yellow-200'
                                 }`}>
                                 <div className="flex items-center gap-3 mb-3">
                                     <span className="text-2xl">
@@ -345,9 +414,9 @@ export default function ImportExport() {
                                                 importProgress.status === 'completed' ? '🎉' : '⏳'}
                                     </span>
                                     <p className={`font-medium ${importProgress.status === 'error' ? 'text-red-900' :
-                                            importProgress.status === 'success' ? 'text-green-900' :
-                                                importProgress.status === 'completed' ? 'text-blue-900' :
-                                                    'text-yellow-900'
+                                        importProgress.status === 'success' ? 'text-green-900' :
+                                            importProgress.status === 'completed' ? 'text-blue-900' :
+                                                'text-yellow-900'
                                         }`}>
                                         {importProgress.message}
                                     </p>
