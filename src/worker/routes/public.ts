@@ -44,7 +44,7 @@ publicRoutes.get('/categories/:id/bookmarks', async (c) => {
     try {
         const categoryId = parseInt(c.req.param('id'))
         const page = parseInt(c.req.query('page') || '1')
-        const limit = parseInt(c.req.query('limit') || '20')
+        const limit = parseInt(c.req.query('limit') || '100') // 增加默认限制到100
 
         // 验证参数
         const validation = validateSearchParams({ page, limit })
@@ -57,45 +57,75 @@ publicRoutes.get('/categories/:id/bookmarks', async (c) => {
         }
 
         const db = c.get('db')
-        const offset = getPaginationOffset(page, limit)
 
-        // 获取活跃书签列表
-        const bookmarkList = await db
-            .select({
-                id: bookmarks.id,
-                title: bookmarks.title,
-                url: bookmarks.url,
-                description: bookmarks.description,
-                categoryId: bookmarks.categoryId,
-                tags: bookmarks.tags,
-                createdAt: bookmarks.createdAt,
-                updatedAt: bookmarks.updatedAt
-            })
-            .from(bookmarks)
-            .where(
-                and(
-                    eq(bookmarks.categoryId, categoryId),
-                    eq(bookmarks.isActive, true),
-                    eq(bookmarks.status, 'active')
+        // 如果请求所有书签（limit设置为-1或很大的数），则不分页
+        let bookmarkList, total;
+
+        if (limit >= 1000) {
+            // 获取所有活跃书签
+            bookmarkList = await db
+                .select({
+                    id: bookmarks.id,
+                    title: bookmarks.title,
+                    url: bookmarks.url,
+                    description: bookmarks.description,
+                    categoryId: bookmarks.categoryId,
+                    tags: bookmarks.tags,
+                    createdAt: bookmarks.createdAt,
+                    updatedAt: bookmarks.updatedAt
+                })
+                .from(bookmarks)
+                .where(
+                    and(
+                        eq(bookmarks.categoryId, categoryId),
+                        eq(bookmarks.isActive, true),
+                        eq(bookmarks.status, 'active')
+                    )
                 )
-            )
-            .orderBy(desc(bookmarks.createdAt))
-            .limit(limit)
-            .offset(offset)
+                .orderBy(desc(bookmarks.createdAt))
 
-        // 获取总数
-        const totalResult = await db
-            .select({ count: sql<number>`count(*)` })
-            .from(bookmarks)
-            .where(
-                and(
-                    eq(bookmarks.categoryId, categoryId),
-                    eq(bookmarks.isActive, true),
-                    eq(bookmarks.status, 'active')
+            total = bookmarkList.length;
+        } else {
+            // 正常分页
+            const offset = getPaginationOffset(page, limit)
+
+            bookmarkList = await db
+                .select({
+                    id: bookmarks.id,
+                    title: bookmarks.title,
+                    url: bookmarks.url,
+                    description: bookmarks.description,
+                    categoryId: bookmarks.categoryId,
+                    tags: bookmarks.tags,
+                    createdAt: bookmarks.createdAt,
+                    updatedAt: bookmarks.updatedAt
+                })
+                .from(bookmarks)
+                .where(
+                    and(
+                        eq(bookmarks.categoryId, categoryId),
+                        eq(bookmarks.isActive, true),
+                        eq(bookmarks.status, 'active')
+                    )
                 )
-            )
+                .orderBy(desc(bookmarks.createdAt))
+                .limit(limit)
+                .offset(offset)
 
-        const total = totalResult[0]?.count || 0
+            // 获取总数
+            const totalResult = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(bookmarks)
+                .where(
+                    and(
+                        eq(bookmarks.categoryId, categoryId),
+                        eq(bookmarks.isActive, true),
+                        eq(bookmarks.status, 'active')
+                    )
+                )
+            total = totalResult[0]?.count || 0
+        }
+
         const totalPages = getTotalPages(total, limit)
 
         // 处理书签数据

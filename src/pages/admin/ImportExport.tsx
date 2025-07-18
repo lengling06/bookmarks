@@ -86,7 +86,21 @@ export default function ImportExport() {
     const parseJsonBookmarks = (jsonContent: string) => {
         try {
             const data = JSON.parse(jsonContent)
-            // 处理不同的JSON格式
+
+            // 处理我们生成的API导入格式
+            if (data.bookmarks && Array.isArray(data.bookmarks)) {
+                return data.bookmarks.map((item: any) => ({
+                    title: item.title || '未命名',
+                    url: item.url || '',
+                    description: item.description || '',
+                    category: item.category || '未分类',
+                    tags: item.tags || [],
+                    addDate: item.addDate || new Date().toISOString(),
+                    importance: item.importance || 3
+                }))
+            }
+
+            // 处理标准数组格式
             if (Array.isArray(data)) {
                 return data.map(item => ({
                     title: item.title || item.name || '未命名',
@@ -94,9 +108,11 @@ export default function ImportExport() {
                     description: item.description || item.desc || '',
                     category: item.category || item.folder || '未分类',
                     tags: item.tags || [],
-                    addDate: item.addDate || item.createdAt || new Date().toISOString()
+                    addDate: item.addDate || item.createdAt || new Date().toISOString(),
+                    importance: item.importance || 3
                 }))
             }
+
             return []
         } catch (error) {
             console.error('JSON解析失败:', error)

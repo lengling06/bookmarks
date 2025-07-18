@@ -2,6 +2,98 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 文本截断样式 */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 动画样式 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.animate-fade-in-down {
+  animation: fadeInDown 0.8s ease-out;
+}
+
+/* 背景装饰 */
+.bamboo {
+  position: absolute;
+  width: 2px;
+  background: linear-gradient(to bottom, transparent, rgba(34, 197, 94, 0.1), transparent);
+  border-radius: 1px;
+}
+
+.bamboo::before {
+  content: '';
+  position: absolute;
+  top: 20%;
+  left: -1px;
+  width: 4px;
+  height: 2px;
+  background: rgba(34, 197, 94, 0.2);
+  border-radius: 2px;
+}
+
+.bamboo::after {
+  content: '';
+  position: absolute;
+  top: 60%;
+  left: -1px;
+  width: 4px;
+  height: 2px;
+  background: rgba(34, 197, 94, 0.2);
+  border-radius: 2px;
+}
+
 /* 墨韵设计系统 CSS 变量 */
 :root {
   --bg-primary: #f8f9fa;

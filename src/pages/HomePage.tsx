@@ -17,17 +17,17 @@ export default function HomePage() {
         }
     }, [categories, selectedCategory])
 
-    // 获取书签数据
+    // 获取书签数据 - 增加限制到1000以获取所有书签
     const { data: categoryBookmarks } = useCategoryBookmarks(
         selectedCategory || 0,
         1,
-        20
+        1000
     )
 
     const { data: searchResults } = useSearchBookmarks({
         q: searchQuery,
         page: 1,
-        limit: 20
+        limit: 100
     })
 
     // 处理分类切换 - 立即响应，无延迟
@@ -163,8 +163,8 @@ export default function HomePage() {
                             </div>
                         )}
 
-                        {/* 书签网格 - 简洁流畅的动画 */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                        {/* 书签网格 - 响应式网格布局 */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
                             {bookmarks.map((bookmark, index) => (
                                 <BookmarkCard
                                     key={`${selectedCategory}-${bookmark.id}`}
@@ -216,28 +216,120 @@ function BookmarkCard({ bookmark, index }: { bookmark: any; index: number }) {
         window.open(bookmark.url, '_blank')
     }
 
+    // 获取网站图标
+    const getFavicon = (url: string) => {
+        try {
+            const domain = new URL(url).origin
+            return `${domain}/favicon.ico`
+        } catch {
+            return null
+        }
+    }
+
+    // 根据分类获取图标
+    const getCategoryIcon = (url: string, title: string) => {
+        const urlLower = url.toLowerCase()
+        const titleLower = title.toLowerCase()
+
+        if (urlLower.includes('github.com')) return '🐙'
+        if (urlLower.includes('bilibili.com')) return '📺'
+        if (urlLower.includes('youtube.com')) return '🎬'
+        if (urlLower.includes('zhihu.com')) return '🤔'
+        if (urlLower.includes('csdn.net')) return '💻'
+        if (urlLower.includes('juejin.cn')) return '💎'
+        if (urlLower.includes('stackoverflow.com')) return '📚'
+        if (urlLower.includes('runoob.com')) return '🎓'
+        if (urlLower.includes('w3school')) return '📖'
+        if (urlLower.includes('mdn.mozilla.org')) return '🌐'
+        if (urlLower.includes('cloudflare.com')) return '☁️'
+        if (urlLower.includes('vercel.com')) return '▲'
+        if (urlLower.includes('openai.com') || titleLower.includes('chatgpt')) return '🤖'
+        if (urlLower.includes('mail') || titleLower.includes('邮箱')) return '📧'
+        if (titleLower.includes('api')) return '🔌'
+        if (titleLower.includes('工具') || titleLower.includes('tool')) return '🛠️'
+        if (titleLower.includes('文档') || titleLower.includes('docs')) return '📄'
+        if (titleLower.includes('教程') || titleLower.includes('tutorial')) return '📚'
+        if (titleLower.includes('下载') || titleLower.includes('download')) return '⬇️'
+        if (titleLower.includes('音乐') || titleLower.includes('music')) return '🎵'
+        if (titleLower.includes('视频') || titleLower.includes('video')) return '🎥'
+        if (titleLower.includes('游戏') || titleLower.includes('game')) return '🎮'
+        if (titleLower.includes('域名') || titleLower.includes('domain')) return '🌍'
+
+        return '🔗'
+    }
+
+    const favicon = getFavicon(bookmark.url)
+    const categoryIcon = getCategoryIcon(bookmark.url, bookmark.title)
+
     return (
         <div
-            className="bg-white rounded-2xl p-6 border border-gray-200 cursor-pointer relative overflow-hidden
+            className="bg-white rounded-2xl p-5 border border-gray-200 cursor-pointer relative overflow-hidden
                      transition-all duration-300 hover:transform hover:-translate-y-1 hover:shadow-lg hover:border-transparent
                      before:content-[''] before:absolute before:top-0 before:left-0 before:w-1 before:h-0 
-                     before:bg-blue-600 before:transition-all before:duration-300 hover:before:h-full"
+                     before:bg-blue-600 before:transition-all before:duration-300 hover:before:h-full
+                     h-32 flex flex-col" // 固定高度，使用flex布局
             onClick={handleClick}
             style={{
-                animationDelay: `${index * 50}ms`,
-                animation: `fadeInUp 0.6s ease-out ${index * 50}ms both`
+                animationDelay: `${index * 30}ms`,
+                animation: `fadeInUp 0.6s ease-out ${index * 30}ms both`
             }}
         >
-            <div className="flex items-center gap-4 mb-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 
-                              flex items-center justify-center text-2xl">
-                    🔗
+            {/* 头部：图标和标题 */}
+            <div className="flex items-start gap-3 mb-3 flex-1">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 
+                              flex items-center justify-center text-lg flex-shrink-0 border border-blue-100">
+                    {favicon ? (
+                        <img
+                            src={favicon}
+                            alt=""
+                            className="w-5 h-5"
+                            onError={(e) => {
+                                // 如果favicon加载失败，显示分类图标
+                                e.currentTarget.style.display = 'none'
+                                e.currentTarget.nextElementSibling!.style.display = 'block'
+                            }}
+                        />
+                    ) : null}
+                    <span className={favicon ? 'hidden' : 'block'}>{categoryIcon}</span>
                 </div>
-                <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-800 mb-1">{bookmark.title}</h3>
-                    {bookmark.description && (
-                        <p className="text-sm text-gray-500 line-clamp-2">{bookmark.description}</p>
-                    )}
+                <div className="flex-1 min-w-0"> {/* min-w-0 确保文本可以被截断 */}
+                    <h3 className="text-base font-medium text-gray-800 mb-1 line-clamp-2 leading-tight">
+                        {bookmark.title}
+                    </h3>
+                </div>
+            </div>
+
+            {/* 底部：描述和标签 */}
+            <div className="mt-auto">
+                {bookmark.description && (
+                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-2">
+                        {bookmark.description}
+                    </p>
+                )}
+
+                {/* 标签 */}
+                {bookmark.tags && bookmark.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                        {bookmark.tags.slice(0, 3).map((tag: string, tagIndex: number) => (
+                            <span
+                                key={tagIndex}
+                                className="inline-block px-2 py-0.5 text-xs bg-gray-100 text-gray-600 
+                                         rounded-full hover:bg-blue-100 hover:text-blue-600 transition-colors"
+                            >
+                                {tag}
+                            </span>
+                        ))}
+                        {bookmark.tags.length > 3 && (
+                            <span className="text-xs text-gray-400">+{bookmark.tags.length - 3}</span>
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* 悬浮时显示的URL提示 */}
+            <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-md max-w-32 truncate">
+                    {new URL(bookmark.url).hostname}
                 </div>
             </div>
         </div>
